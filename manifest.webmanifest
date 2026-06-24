@@ -1,0 +1,15 @@
+{
+  "name": "Extintores Importados",
+  "short_name": "Importados",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f0eb",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
