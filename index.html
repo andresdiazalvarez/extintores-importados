@@ -102,7 +102,24 @@
           <label>Edificio<input id="edificio" /></label>
           <label>Número SYCo<input id="cantidad" /></label>
           <label>Ubicación<textarea id="ubicacion" rows="2"></textarea></label>
-          <label>Modelo<input id="modelo" /></label>
+          <label>Modelo
+            <input id="modelo" list="modelosExtintor" placeholder="Escribe o elige modelo" />
+            <datalist id="modelosExtintor">
+              <option value=""></option>
+              <option value="ABC 6 KG"></option>
+              <option value="ABC 3 KG"></option>
+              <option value="ABC 9 KG"></option>
+              <option value="CO2 2 KG"></option>
+              <option value="CO2 5 KG"></option>
+              <option value="CO2 10 KG"></option>
+              <option value="ABF 6 KG"></option>
+              <option value="ABF 9 KG"></option>
+              <option value="ABC 1 KG"></option>
+              <option value="ABC 25 KG"></option>
+              <option value="ABC 50 KG"></option>
+              <option value="ABC 100 KG"></option>
+            </datalist>
+          </label>
           <label>Nº serie<input id="numeroSerie" /></label>
           <label>Fecha / año fabricación<input id="fechaFabricacion" /></label>
           <label>Fecha retimbrado<input id="fechaProximoRetimbrado" /></label>
