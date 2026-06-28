@@ -28,6 +28,27 @@
             <div><strong id="seenCount">0</strong><span>Vistos</span></div>
             <div><strong id="pendingCount">0</strong><span>Pendientes</span></div>
           </div>
+
+          <div class="compactFilters">
+            <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
+            <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
+            <label>Nº serie<input id="filterSerie" type="search" placeholder="Filtrar serie" /></label>
+            <label>Ordenar
+              <select id="sortOrder">
+                <option value="none">Sin ordenar</option>
+                <option value="edificio">Edificio</option>
+                <option value="numero">Número SYCo</option>
+              </select>
+            </label>
+            <label>Estado
+              <select id="seenFilter">
+                <option value="all">Todos</option>
+                <option value="pending">Pendientes</option>
+                <option value="seen">Vistos</option>
+              </select>
+            </label>
+          </div>
+
           <button id="openListBtn" class="primary">▦ Ver registros en tabla</button>
           <button id="importExcelBtn" class="secondary">Importar Excel</button>
           <input id="importExcelInput" class="hidden" type="file" accept=".xlsx,.xls" />
@@ -42,34 +63,25 @@
         <p class="kicker">REGISTROS</p>
         <h2>Listado</h2>
 
-        <div class="toolbar">
-          <input id="filterEdificio" type="search" placeholder="Filtrar por edificio" />
-          <input id="filterNumero" type="search" placeholder="Filtrar por número" />
-          <input id="filterSerie" type="search" placeholder="Filtrar por nº serie" />
-          <select id="seenFilter">
-            <option value="all">Todos</option>
-            <option value="pending">Pendientes</option>
-            <option value="seen">Vistos</option>
-          </select>
+        <div class="listActions">
+          <button id="newRecordFromListBtn" class="secondary">Meter dato nuevo</button>
+          <button id="downloadExcelFromTableBtn" class="secondary">⇩ Descargar todos en Excel</button>
         </div>
-
-        <button id="downloadExcelFromTableBtn" class="secondary tableDownload">⇩ Descargar todos en Excel</button>
 
         <div class="tableWrap">
           <table>
             <thead>
               <tr>
-                <th>Número</th>
                 <th>Edificio</th>
+                <th>Número SYCo</th>
                 <th>Ubicación</th>
-                <th>Marca</th>
                 <th>Modelo</th>
                 <th>Nº serie</th>
                 <th>Fabricación</th>
                 <th>Retimbrado</th>
+                <th>Observaciones</th>
+                <th>Señal</th>
                 <th>Defectos</th>
-                <th>Foto 1</th>
-                <th>Foto 2</th>
                 <th>Visto</th>
                 <th></th>
               </tr>
@@ -87,46 +99,34 @@
         <form id="recordForm" class="card formCard">
           <input type="hidden" id="recordId" />
 
-          <label>Edificio / código<input id="edificioCodigo" /></label>
-          <label>Cantidad / número<input id="cantidad" /></label>
           <label>Edificio<input id="edificio" /></label>
+          <label>Número SYCo<input id="cantidad" /></label>
           <label>Ubicación<textarea id="ubicacion" rows="2"></textarea></label>
-          <label>Marca<input id="marca" /></label>
           <label>Modelo<input id="modelo" /></label>
           <label>Nº serie<input id="numeroSerie" /></label>
-          <label>Características<textarea id="caracteristicas" rows="2"></textarea></label>
           <label>Fecha / año fabricación<input id="fechaFabricacion" /></label>
-          <label>Fecha próximo retimbrado<input id="fechaProximoRetimbrado" /></label>
+          <label>Fecha retimbrado<input id="fechaProximoRetimbrado" /></label>
+          <label>Observaciones<textarea id="observaciones" rows="3"></textarea></label>
+
+          <label>Señal
+            <select id="senal">
+              <option value="">Sin indicar</option>
+              <option value="2017">2017</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </label>
 
           <div class="defectsBlock">
             <h3>Defectos encontrados</h3>
             <div id="defectsList" class="checks"></div>
-          </div>
-
-          <label>Observaciones<textarea id="observaciones" rows="3"></textarea></label>
-
-          <div class="photosBlock">
-            <h3>Fotografías</h3>
-            <div class="photoGrid">
-              <div class="photoSlot">
-                <strong>Foto 1</strong>
-                <label class="photoBox" id="photoBox1">
-                  <input id="photoInput1" type="file" accept="image/*" capture="environment" />
-                  <span>+ Hacer foto</span>
-                  <img id="photoPreview1" alt="Foto 1" class="hidden" />
-                </label>
-                <button type="button" id="deletePhoto1" class="photoDelete">Eliminar foto</button>
-              </div>
-              <div class="photoSlot">
-                <strong>Foto 2</strong>
-                <label class="photoBox" id="photoBox2">
-                  <input id="photoInput2" type="file" accept="image/*" capture="environment" />
-                  <span>+ Hacer foto</span>
-                  <img id="photoPreview2" alt="Foto 2" class="hidden" />
-                </label>
-                <button type="button" id="deletePhoto2" class="photoDelete">Eliminar foto</button>
-              </div>
-            </div>
           </div>
 
           <label class="seenLine">
