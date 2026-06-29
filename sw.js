@@ -1,4 +1,4 @@
-const CACHE_NAME = "extintores-importados-v5-modelos";
+const CACHE_NAME = "extintores-importados-v7-filtros-listado";
 const ASSETS = [
   "./",
   "./index.html",

@@ -27,6 +27,7 @@ const fields = [
 ];
 
 let records = [];
+let currentPhotos = ["", ""];
 
 const $ = (id) => document.getElementById(id);
 
@@ -66,9 +67,45 @@ function cleanRecord(record) {
     observaciones: safeText(record.observaciones),
     senal: safeText(record.senal),
     defectos: Array.isArray(record.defectos) ? record.defectos : [],
+    photos: Array.isArray(record.photos) ? [safeText(record.photos[0]), safeText(record.photos[1])] : ["", ""],
     visto: Boolean(record.visto),
     origen: record.origen || "excel",
   };
+}
+
+function setPhotoPreview(index, dataUrl) {
+  const photo = safeText(dataUrl);
+  const img = $(`photoPreview${index + 1}`);
+  const box = $(`photoBox${index + 1}`);
+  const text = box.querySelector("span");
+  currentPhotos[index] = photo;
+  img.src = photo;
+  img.classList.toggle("hidden", !photo);
+  text.classList.toggle("hidden", Boolean(photo));
+  $(`deletePhoto${index + 1}`).disabled = !photo;
+}
+
+function resizePhoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 1200;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function excelCellToText(value) {
@@ -277,13 +314,19 @@ function renderTable() {
   body.innerHTML = "";
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="12">No hay registros con ese filtro.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14">No hay registros con ese filtro.</td></tr>`;
     return;
   }
 
   for (const record of rows) {
     const tr = document.createElement("tr");
     const defects = (record.defectos || []).length ? record.defectos.join(" / ") : "-";
+    const photo1 = record.photos?.[0]
+      ? `<img class="tablePhoto" src="${record.photos[0]}" alt="Foto 1">`
+      : `<span class="noPhoto">—</span>`;
+    const photo2 = record.photos?.[1]
+      ? `<img class="tablePhoto" src="${record.photos[1]}" alt="Foto 2">`
+      : `<span class="noPhoto">—</span>`;
     tr.innerHTML = `
       <td>${safeText(record.edificio) || "-"}</td>
       <td><strong>${safeText(record.cantidad) || "-"}</strong></td>
@@ -295,6 +338,8 @@ function renderTable() {
       <td>${safeText(record.observaciones) || "-"}</td>
       <td>${safeText(record.senal) || "-"}</td>
       <td>${defects}</td>
+      <td>${photo1}</td>
+      <td>${photo2}</td>
       <td><span class="${record.visto ? "ok" : "pending"}">${record.visto ? "Sí" : "No"}</span></td>
       <td><button class="editBtn" data-edit="${record.id}">Ver / corregir</button></td>
     `;
@@ -334,6 +379,9 @@ function openForm(id = null) {
   }
   $("visto").checked = Boolean(record?.visto);
   renderDefects(record?.defectos || []);
+  const photos = Array.isArray(record?.photos) ? record.photos : ["", ""];
+  setPhotoPreview(0, photos[0]);
+  setPhotoPreview(1, photos[1]);
   showView("form");
 }
 
@@ -346,6 +394,7 @@ function collectForm() {
   }
 
   record.defectos = Array.from($("defectsList").querySelectorAll("input:checked")).map((input) => input.value);
+  record.photos = [currentPhotos[0] || "", currentPhotos[1] || ""];
   record.visto = $("visto").checked;
   return cleanRecord(record);
 }
@@ -402,6 +451,8 @@ async function downloadExcel() {
     ["defectoCristal", "Cristal ausente o roto", 26],
     ["defectoSinSenal", "Sin señal", 16],
     ["defectoSenalCaducada", "Señal caducada", 20],
+    ["foto1", "Foto 1", 22],
+    ["foto2", "Foto 2", 22],
     ["visto", "Visto", 10],
   ];
 
@@ -413,7 +464,7 @@ async function downloadExcel() {
 
   for (const record of filteredRecords()) {
     const selectedDefects = record.defectos || [];
-    sheet.addRow({
+    const row = sheet.addRow({
       ...record,
       defectos: selectedDefects.join(" / "),
       defectoExtintorCaducado: selectedDefects.includes("Extintor caducado.") ? "Sí" : "",
@@ -424,7 +475,24 @@ async function downloadExcel() {
       defectoCristal: selectedDefects.includes("Cristal del extintor ausente o roto.") ? "Sí" : "",
       defectoSinSenal: selectedDefects.includes("Sin señal.") ? "Sí" : "",
       defectoSenalCaducada: selectedDefects.includes("Señal caducada.") ? "Sí" : "",
+      foto1: record.photos?.[0] ? "Foto 1" : "",
+      foto2: record.photos?.[1] ? "Foto 2" : "",
       visto: record.visto ? "Sí" : "No",
+    });
+    if (record.photos?.[0] || record.photos?.[1]) row.height = 92;
+    [0, 1].forEach((photoIndex) => {
+      const photo = record.photos?.[photoIndex];
+      if (!photo) return;
+      const imageId = workbook.addImage({
+        base64: photo,
+        extension: "jpeg",
+      });
+      const col = photoIndex === 0 ? 18 : 19;
+      sheet.addImage(imageId, {
+        tl: { col, row: row.number - 1 },
+        ext: { width: 120, height: 85 },
+        editAs: "oneCell",
+      });
     });
   }
 
@@ -492,6 +560,21 @@ function bindEvents() {
 
   $("recordForm").addEventListener("submit", saveForm);
   $("deleteBtn").addEventListener("click", deleteCurrent);
+  [0, 1].forEach((index) => {
+    $(`photoInput${index + 1}`).addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const dataUrl = await resizePhoto(file);
+        setPhotoPreview(index, dataUrl);
+      } catch {
+        alert("No he podido cargar esa foto. Prueba con otra imagen.");
+      } finally {
+        event.target.value = "";
+      }
+    });
+    $(`deletePhoto${index + 1}`).addEventListener("click", () => setPhotoPreview(index, ""));
+  });
 
   document.querySelectorAll("[data-back]").forEach((button) => {
     button.addEventListener("click", () => showView(button.dataset.back));
