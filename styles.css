@@ -200,7 +200,7 @@ textarea { resize: vertical; }
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 1380px;
+  min-width: 1220px;
 }
 
 th, td {
@@ -238,20 +238,6 @@ td .pill {
   font-size: 14px;
 }
 
-.tablePhoto {
-  width: 74px;
-  height: 58px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  display: block;
-}
-
-.noPhoto {
-  color: var(--muted);
-  font-weight: 700;
-}
-
 .formCard {
   display: grid;
   gap: 16px;
@@ -268,53 +254,6 @@ label {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-}
-
-.photoGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.photoSlot {
-  display: grid;
-  gap: 10px;
-  text-align: center;
-}
-
-.photoBox {
-  min-height: 220px;
-  display: grid;
-  place-items: center;
-  border: 2px dashed #cfc7bf;
-  border-radius: 20px;
-  background: #faf8f5;
-  color: #6f6b66;
-  cursor: pointer;
-  overflow: hidden;
-  padding: 0;
-}
-
-.photoBox input {
-  display: none;
-}
-
-.photoBox span {
-  font-size: 20px;
-  font-weight: 850;
-}
-
-.photoBox img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-}
-
-.photoDelete {
-  background: #fff;
-  color: #b00020;
-  border: 1px solid #f1c7c7;
-  padding: 13px 16px;
 }
 
 .checkItem,
@@ -344,7 +283,7 @@ label {
   .topbar { padding: 16px 22px; }
   .brand { font-size: 24px; }
   main { padding: 28px 18px 70px; }
-  .stats, .compactFilters, .listActions, .checks, .actions, .photoGrid {
+  .stats, .compactFilters, .listActions, .checks, .actions {
     grid-template-columns: 1fr;
   }
 }

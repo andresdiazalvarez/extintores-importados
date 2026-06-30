@@ -29,6 +29,26 @@
             <div><strong id="pendingCount">0</strong><span>Pendientes</span></div>
           </div>
 
+          <div class="compactFilters">
+            <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
+            <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
+            <label>Nº serie<input id="filterSerie" type="search" placeholder="Filtrar serie" /></label>
+            <label>Ordenar
+              <select id="sortOrder">
+                <option value="none">Sin ordenar</option>
+                <option value="edificio">Edificio</option>
+                <option value="numero">Número SYCo</option>
+              </select>
+            </label>
+            <label>Estado
+              <select id="seenFilter">
+                <option value="all">Todos</option>
+                <option value="pending">Pendientes</option>
+                <option value="seen">Vistos</option>
+              </select>
+            </label>
+          </div>
+
           <button id="openListBtn" class="primary">▦ Ver registros en tabla</button>
           <button id="importExcelBtn" class="secondary">Importar Excel</button>
           <input id="importExcelInput" class="hidden" type="file" accept=".xlsx,.xls" />
@@ -42,26 +62,6 @@
         <button class="back" data-back="home">← Volver</button>
         <p class="kicker">REGISTROS</p>
         <h2>Listado</h2>
-
-        <div class="compactFilters">
-          <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
-          <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
-          <label>Nº serie<input id="filterSerie" type="search" placeholder="Filtrar serie" /></label>
-          <label>Ordenar
-            <select id="sortOrder">
-              <option value="none">Sin ordenar</option>
-              <option value="edificio">Edificio</option>
-              <option value="numero">Número SYCo</option>
-            </select>
-          </label>
-          <label>Estado
-            <select id="seenFilter">
-              <option value="all">Todos</option>
-              <option value="pending">Pendientes</option>
-              <option value="seen">Vistos</option>
-            </select>
-          </label>
-        </div>
 
         <div class="listActions">
           <button id="newRecordFromListBtn" class="secondary">Meter dato nuevo</button>
@@ -82,8 +82,6 @@
                 <th>Observaciones</th>
                 <th>Señal</th>
                 <th>Defectos</th>
-                <th>Foto 1</th>
-                <th>Foto 2</th>
                 <th>Visto</th>
                 <th></th>
               </tr>
@@ -146,30 +144,6 @@
           <div class="defectsBlock">
             <h3>Defectos encontrados</h3>
             <div id="defectsList" class="checks"></div>
-          </div>
-
-          <div class="photosBlock">
-            <h3>Fotografías</h3>
-            <div class="photoGrid">
-              <div class="photoSlot">
-                <strong>Foto 1</strong>
-                <label class="photoBox" id="photoBox1">
-                  <input id="photoInput1" type="file" accept="image/*" capture="environment" />
-                  <span>+ Hacer foto</span>
-                  <img id="photoPreview1" alt="Foto 1" class="hidden" />
-                </label>
-                <button type="button" id="deletePhoto1" class="photoDelete">Eliminar foto</button>
-              </div>
-              <div class="photoSlot">
-                <strong>Foto 2</strong>
-                <label class="photoBox" id="photoBox2">
-                  <input id="photoInput2" type="file" accept="image/*" capture="environment" />
-                  <span>+ Hacer foto</span>
-                  <img id="photoPreview2" alt="Foto 2" class="hidden" />
-                </label>
-                <button type="button" id="deletePhoto2" class="photoDelete">Eliminar foto</button>
-              </div>
-            </div>
           </div>
 
           <label class="seenLine">
