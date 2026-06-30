@@ -1,602 +1,193 @@
-const STORAGE_KEY = "extintores-importados-records-v1";
-const DB_NAME = "extintores-importados-db";
-const DB_VERSION = 1;
-const STORE_NAME = "state";
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#3b0764" />
+    <title>Extintores Importados</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="icon.svg" alt="" />
+        <span>Extintores Importados</span>
+      </div>
+    </header>
 
-const defectOptions = [
-  "Extintor caducado.",
-  "Hay un obstáculo.",
-  "Extintor descargado.",
-  "Extintor sin presión.",
-  "Extintor en el suelo.",
-  "Cristal armario roto o sin cristal.",
-  "Sin señal.",
-  "Señal caducada.",
-  "Extintor en mal estado.",
-];
+    <main>
+      <section id="homeView" class="hero">
+        <p class="kicker">IMPORTACIÓN DE EXTINTORES</p>
+        <h1>Importa, conserva y añade solo lo nuevo.</h1>
+        <p class="subtitle">Carga nuevos Excel sin borrar los registros actuales. La app ignora los repetidos.</p>
 
-const fields = [
-  "edificio",
-  "cantidad",
-  "ubicacion",
-  "modelo",
-  "numeroSerie",
-  "fechaFabricacion",
-  "fechaProximoRetimbrado",
-  "observaciones",
-  "senal",
-];
+        <div class="card">
+          <div class="stats">
+            <div><strong id="totalCount">0</strong><span>Total</span></div>
+            <div><strong id="seenCount">0</strong><span>Vistos</span></div>
+            <div><strong id="pendingCount">0</strong><span>Pendientes</span></div>
+          </div>
 
-let records = [];
-let currentPhotos = ["", ""];
+          <button id="openListBtn" class="primary">▦ Ver registros en tabla</button>
+          <button id="importExcelBtn" class="secondary">Importar Excel</button>
+          <input id="importExcelInput" class="hidden" type="file" accept=".xlsx,.xls" />
+          <p id="importStatus" class="importStatus"></p>
+          <button id="newRecordBtn" class="secondary">Meter dato nuevo</button>
+          <button id="downloadExcelBtn" class="secondary">Descargar Excel</button>
+        </div>
+      </section>
 
-const $ = (id) => document.getElementById(id);
+      <section id="listView" class="hidden">
+        <button class="back" data-back="home">← Volver</button>
+        <p class="kicker">REGISTROS</p>
+        <h2>Listado</h2>
 
-function safeText(value) {
-  return value === undefined || value === null ? "" : String(value);
-}
+        <div class="compactFilters">
+          <label>Edificio<input id="filterEdificio" type="search" placeholder="Filtrar edificio" /></label>
+          <label>Número SYCo<input id="filterNumero" type="search" placeholder="Filtrar número" /></label>
+          <label>Nº serie<input id="filterSerie" type="search" placeholder="Filtrar serie" /></label>
+          <label>Ordenar
+            <select id="sortOrder">
+              <option value="none">Sin ordenar</option>
+              <option value="edificio">Edificio</option>
+              <option value="numero">Número SYCo</option>
+            </select>
+          </label>
+          <label>Estado
+            <select id="seenFilter">
+              <option value="all">Todos</option>
+              <option value="pending">Pendientes</option>
+              <option value="seen">Vistos</option>
+            </select>
+          </label>
+        </div>
 
-function createId() {
-  return `manual-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+        <div class="listActions">
+          <button id="newRecordFromListBtn" class="secondary">Meter dato nuevo</button>
+          <button id="downloadExcelFromTableBtn" class="secondary">⇩ Descargar todos en Excel</button>
+        </div>
 
-function normalizeKeyPart(value) {
-  return safeText(value)
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Edificio</th>
+                <th>Número SYCo</th>
+                <th>Ubicación</th>
+                <th>Modelo</th>
+                <th>Nº serie</th>
+                <th>Fabricación</th>
+                <th>Retimbrado</th>
+                <th>Observaciones</th>
+                <th>Señal</th>
+                <th>Defectos</th>
+                <th>Foto 1</th>
+                <th>Foto 2</th>
+                <th>Visto</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+        </div>
+      </section>
 
-function recordKey(record) {
-  return [
-    normalizeKeyPart(record.cantidad),
-    normalizeKeyPart(record.numeroSerie),
-    normalizeKeyPart(record.ubicacion),
-  ].join("|");
-}
+      <section id="formView" class="hidden">
+        <button class="back" data-back="list">← Volver</button>
+        <p class="kicker" id="formKicker">REGISTRO</p>
+        <h2 id="formTitle">Editar extintor</h2>
 
-function cleanRecord(record) {
-  const normalizedDefects = (Array.isArray(record.defectos) ? record.defectos : []).map((defect) =>
-    defect === "Cristal del extintor ausente o roto." ? "Cristal armario roto o sin cristal." : defect
-  );
-  return {
-    id: record.id || createId(),
-    edificio: safeText(record.edificio),
-    cantidad: safeText(record.cantidad),
-    ubicacion: safeText(record.ubicacion),
-    modelo: safeText(record.modelo),
-    numeroSerie: safeText(record.numeroSerie),
-    fechaFabricacion: safeText(record.fechaFabricacion),
-    fechaProximoRetimbrado: safeText(record.fechaProximoRetimbrado),
-    observaciones: safeText(record.observaciones),
-    senal: safeText(record.senal),
-    defectos: normalizedDefects,
-    photos: Array.isArray(record.photos) ? [safeText(record.photos[0]), safeText(record.photos[1])] : ["", ""],
-    visto: Boolean(record.visto),
-    origen: record.origen || "excel",
-  };
-}
+        <form id="recordForm" class="card formCard">
+          <input type="hidden" id="recordId" />
 
-function setPhotoPreview(index, dataUrl) {
-  const photo = safeText(dataUrl);
-  const img = $(`photoPreview${index + 1}`);
-  const box = $(`photoBox${index + 1}`);
-  const text = box.querySelector("span");
-  currentPhotos[index] = photo;
-  img.src = photo;
-  img.classList.toggle("hidden", !photo);
-  text.classList.toggle("hidden", Boolean(photo));
-  $(`deletePhoto${index + 1}`).disabled = !photo;
-}
+          <label>Edificio<input id="edificio" /></label>
+          <label>Número SYCo<input id="cantidad" /></label>
+          <label>Ubicación<textarea id="ubicacion" rows="2"></textarea></label>
+          <label>Modelo
+            <input id="modelo" list="modelosExtintor" placeholder="Escribe o elige modelo" />
+            <datalist id="modelosExtintor">
+              <option value=""></option>
+              <option value="ABC 6 KG"></option>
+              <option value="ABC 3 KG"></option>
+              <option value="ABC 9 KG"></option>
+              <option value="CO2 2 KG"></option>
+              <option value="CO2 5 KG"></option>
+              <option value="CO2 10 KG"></option>
+              <option value="ABF 6 KG"></option>
+              <option value="ABF 9 KG"></option>
+              <option value="ABC 1 KG"></option>
+              <option value="ABC 25 KG"></option>
+              <option value="ABC 50 KG"></option>
+              <option value="ABC 100 KG"></option>
+            </datalist>
+          </label>
+          <label>Nº serie<input id="numeroSerie" /></label>
+          <label>Fecha / año fabricación<input id="fechaFabricacion" /></label>
+          <label>Fecha retimbrado<input id="fechaProximoRetimbrado" /></label>
+          <label>Observaciones<textarea id="observaciones" rows="3"></textarea></label>
 
-function resizePhoto(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const maxSide = 1200;
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.72));
-      };
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+          <label>Señal
+            <select id="senal">
+              <option value="">Sin indicar</option>
+              <option value="2017">2017</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </label>
 
-function excelCellToText(value) {
-  if (value === undefined || value === null) return "";
-  if (value instanceof Date) return value.toLocaleDateString("es-ES");
-  if (typeof value === "object") {
-    if (value.text) return String(value.text);
-    if (value.result !== undefined) return excelCellToText(value.result);
-    if (Array.isArray(value.richText)) return value.richText.map((part) => part.text || "").join("");
-  }
-  return String(value);
-}
+          <div class="defectsBlock">
+            <h3>Defectos encontrados</h3>
+            <div id="defectsList" class="checks"></div>
+          </div>
 
-function rowToImportedRecord(rowValues, index) {
-  const values = [];
-  for (let col = 1; col <= 10; col += 1) {
-    values[col] = excelCellToText(rowValues[col]);
-  }
+          <div class="photosBlock">
+            <h3>Fotografías</h3>
+            <div class="photoGrid">
+              <div class="photoSlot">
+                <strong>Foto 1</strong>
+                <label class="photoBox" id="photoBox1">
+                  <input id="photoInput1" type="file" accept="image/*" capture="environment" />
+                  <span>+ Hacer foto</span>
+                  <img id="photoPreview1" alt="Foto 1" class="hidden" />
+                </label>
+                <button type="button" id="deletePhoto1" class="photoDelete">Eliminar foto</button>
+              </div>
+              <div class="photoSlot">
+                <strong>Foto 2</strong>
+                <label class="photoBox" id="photoBox2">
+                  <input id="photoInput2" type="file" accept="image/*" capture="environment" />
+                  <span>+ Hacer foto</span>
+                  <img id="photoPreview2" alt="Foto 2" class="hidden" />
+                </label>
+                <button type="button" id="deletePhoto2" class="photoDelete">Eliminar foto</button>
+              </div>
+            </div>
+          </div>
 
-  return cleanRecord({
-    id: `import-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
-    cantidad: values[2],
-    edificio: values[3],
-    ubicacion: values[4],
-    modelo: values[6],
-    numeroSerie: values[7],
-    fechaFabricacion: values[9],
-    fechaProximoRetimbrado: values[10],
-    observaciones: "",
-    senal: "",
-    defectos: [],
-    visto: false,
-    origen: "importado",
-  });
-}
+          <label class="seenLine">
+            <input id="visto" type="checkbox" />
+            <span>Marcar como visto</span>
+          </label>
 
-function openDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+          <div class="actions">
+            <button type="button" id="viewTableFromFormBtn" class="secondary">▦ Ver registros en tabla</button>
+            <button type="submit" class="primary">Guardar</button>
+            <button type="button" id="deleteBtn" class="danger">Eliminar</button>
+          </div>
+        </form>
+      </section>
+    </main>
 
-async function readState() {
-  const db = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const request = tx.objectStore(STORE_NAME).get("records");
-    request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function writeState(value) {
-  const db = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(value, "records");
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function loadRecords() {
-  try {
-    const saved = await readState();
-    if (Array.isArray(saved)) {
-      records = saved.map(cleanRecord);
-      return;
-    }
-  } catch {}
-
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      records = JSON.parse(stored).map(cleanRecord);
-      await saveRecords();
-      return;
-    } catch {
-      records = [];
-    }
-  }
-
-  records = (window.INITIAL_EXTINTORES_LISTADOS || []).map(cleanRecord);
-  await saveRecords();
-}
-
-async function saveRecords() {
-  records = records.map(cleanRecord);
-  updateStats();
-  try {
-    await writeState(records);
-  } catch {
-    alert("No he podido guardar los datos. Puede faltar espacio en el navegador.");
-  }
-}
-
-async function importExcelFile(file) {
-  if (!window.ExcelJS) {
-    alert("No se ha cargado el lector de Excel. Cierra y vuelve a abrir la app.");
-    return;
-  }
-
-  const buffer = await file.arrayBuffer();
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
-  const sheet = workbook.worksheets[0];
-  if (!sheet) {
-    alert("No encuentro ninguna hoja en ese Excel.");
-    return;
-  }
-
-  const existingKeys = new Set(records.map(recordKey).filter((key) => key !== "||"));
-  const imported = [];
-  let repeated = 0;
-
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    const record = rowToImportedRecord(row.values, rowNumber);
-    const hasData = [
-      record.edificio,
-      record.cantidad,
-      record.ubicacion,
-      record.modelo,
-      record.numeroSerie,
-    ].some((value) => safeText(value).trim());
-    if (!hasData) return;
-
-    const key = recordKey(record);
-    if (key !== "||" && existingKeys.has(key)) {
-      repeated += 1;
-      return;
-    }
-    existingKeys.add(key);
-    imported.push(record);
-  });
-
-  if (!imported.length) {
-    $("importStatus").textContent = `No se añadieron registros nuevos. Repetidos detectados: ${repeated}.`;
-    alert(`No se añadieron registros nuevos.\nRepetidos detectados: ${repeated}.`);
-    return;
-  }
-
-  records = [...imported, ...records];
-  await saveRecords();
-  $("importStatus").textContent = `Importación correcta: ${imported.length} nuevos. Repetidos ignorados: ${repeated}.`;
-  alert(`Importación correcta.\nNuevos: ${imported.length}\nRepetidos ignorados: ${repeated}`);
-}
-
-function updateStats() {
-  const total = records.length;
-  const seen = records.filter((record) => record.visto).length;
-  $("totalCount").textContent = total;
-  $("seenCount").textContent = seen;
-  $("pendingCount").textContent = total - seen;
-}
-
-function showView(name) {
-  $("homeView").classList.toggle("hidden", name !== "home");
-  $("listView").classList.toggle("hidden", name !== "list");
-  $("formView").classList.toggle("hidden", name !== "form");
-  if (name === "list") renderTable();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function compareText(a, b) {
-  return safeText(a).localeCompare(safeText(b), "es", { numeric: true, sensitivity: "base" });
-}
-
-function filteredRecords() {
-  const filterEdificio = $("filterEdificio").value.trim().toLowerCase();
-  const filterNumero = $("filterNumero").value.trim().toLowerCase();
-  const filterSerie = $("filterSerie").value.trim().toLowerCase();
-  const seenFilter = $("seenFilter").value;
-  const sortOrder = $("sortOrder").value;
-
-  const rows = records.filter((record) => {
-    if (seenFilter === "seen" && !record.visto) return false;
-    if (seenFilter === "pending" && record.visto) return false;
-    const edificioText = [record.edificio, record.ubicacion].join(" ").toLowerCase();
-    const numeroText = safeText(record.cantidad).toLowerCase();
-    const serieText = safeText(record.numeroSerie).toLowerCase();
-    if (filterEdificio && !edificioText.includes(filterEdificio)) return false;
-    if (filterNumero && !numeroText.includes(filterNumero)) return false;
-    if (filterSerie && !serieText.includes(filterSerie)) return false;
-    return true;
-  });
-
-  if (sortOrder === "edificio") {
-    rows.sort((a, b) => compareText(a.edificio, b.edificio) || compareText(a.cantidad, b.cantidad));
-  }
-  if (sortOrder === "numero") {
-    rows.sort((a, b) => compareText(a.cantidad, b.cantidad) || compareText(a.edificio, b.edificio));
-  }
-
-  return rows;
-}
-
-function renderTable() {
-  const body = $("recordsBody");
-  const rows = filteredRecords();
-  body.innerHTML = "";
-
-  if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="14">No hay registros con ese filtro.</td></tr>`;
-    return;
-  }
-
-  for (const record of rows) {
-    const tr = document.createElement("tr");
-    const defects = (record.defectos || []).length ? record.defectos.join(" / ") : "-";
-    const photo1 = record.photos?.[0]
-      ? `<img class="tablePhoto" src="${record.photos[0]}" alt="Foto 1">`
-      : `<span class="noPhoto">—</span>`;
-    const photo2 = record.photos?.[1]
-      ? `<img class="tablePhoto" src="${record.photos[1]}" alt="Foto 2">`
-      : `<span class="noPhoto">—</span>`;
-    tr.innerHTML = `
-      <td>${safeText(record.edificio) || "-"}</td>
-      <td><strong>${safeText(record.cantidad) || "-"}</strong></td>
-      <td>${safeText(record.ubicacion) || "-"}</td>
-      <td>${safeText(record.modelo) || "-"}</td>
-      <td>${safeText(record.numeroSerie) || "-"}</td>
-      <td>${safeText(record.fechaFabricacion) || "-"}</td>
-      <td>${safeText(record.fechaProximoRetimbrado) || "-"}</td>
-      <td>${safeText(record.observaciones) || "-"}</td>
-      <td>${safeText(record.senal) || "-"}</td>
-      <td>${defects}</td>
-      <td>${photo1}</td>
-      <td>${photo2}</td>
-      <td><span class="${record.visto ? "ok" : "pending"}">${record.visto ? "Sí" : "No"}</span></td>
-      <td><button class="editBtn" data-edit="${record.id}">Ver / corregir</button></td>
-    `;
-    body.appendChild(tr);
-  }
-
-  body.querySelectorAll("[data-edit]").forEach((button) => {
-    button.addEventListener("click", () => openForm(button.dataset.edit));
-  });
-}
-
-function renderDefects(selected = []) {
-  const box = $("defectsList");
-  box.innerHTML = "";
-  for (const option of defectOptions) {
-    const label = document.createElement("label");
-    label.className = "checkItem";
-    label.innerHTML = `
-      <input type="checkbox" value="${option}">
-      <span>${option}</span>
-    `;
-    const input = label.querySelector("input");
-    input.checked = selected.includes(option);
-    box.appendChild(label);
-  }
-}
-
-function openForm(id = null) {
-  const record = id ? records.find((item) => item.id === id) : null;
-  $("recordId").value = record?.id || "";
-  $("formTitle").textContent = record ? "Ver y corregir extintor" : "Meter dato nuevo";
-  $("formKicker").textContent = record ? "REGISTRO EXISTENTE" : "NUEVO REGISTRO";
-  $("deleteBtn").classList.toggle("hidden", !record);
-
-  for (const key of fields) {
-    $(key).value = safeText(record?.[key]);
-  }
-  $("visto").checked = Boolean(record?.visto);
-  renderDefects(record?.defectos || []);
-  const photos = Array.isArray(record?.photos) ? record.photos : ["", ""];
-  setPhotoPreview(0, photos[0]);
-  setPhotoPreview(1, photos[1]);
-  showView("form");
-}
-
-function collectForm() {
-  const id = $("recordId").value || createId();
-  const record = { id, origen: $("recordId").value ? "editado" : "manual" };
-
-  for (const key of fields) {
-    record[key] = $(key).value.trim();
-  }
-
-  record.defectos = Array.from($("defectsList").querySelectorAll("input:checked")).map((input) => input.value);
-  record.photos = [currentPhotos[0] || "", currentPhotos[1] || ""];
-  record.visto = $("visto").checked;
-  return cleanRecord(record);
-}
-
-async function saveForm(event) {
-  event.preventDefault();
-  const record = collectForm();
-  const index = records.findIndex((item) => item.id === record.id);
-  if (index >= 0) {
-    records[index] = { ...records[index], ...record };
-  } else {
-    records.unshift(record);
-  }
-  await saveRecords();
-  showView("list");
-}
-
-async function deleteCurrent() {
-  const id = $("recordId").value;
-  if (!id) return;
-  if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
-  records = records.filter((record) => record.id !== id);
-  await saveRecords();
-  showView("list");
-}
-
-async function downloadExcel() {
-  if (!window.ExcelJS) {
-    alert("No se ha cargado el generador de Excel. Cierra y vuelve a abrir la app.");
-    return;
-  }
-
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Extintores Importados";
-  workbook.created = new Date();
-  const sheet = workbook.addWorksheet("Extintores");
-
-  const columns = [
-    ["edificio", "Edificio", 14],
-    ["cantidad", "Número SYCo", 18],
-    ["ubicacion", "Ubicación", 42],
-    ["modelo", "Modelo", 28],
-    ["numeroSerie", "Nº serie", 18],
-    ["fechaFabricacion", "Fecha / año fabricación", 22],
-    ["fechaProximoRetimbrado", "Fecha retimbrado", 22],
-    ["observaciones", "Observaciones", 34],
-    ["senal", "Señal", 14],
-    ["defectos", "Defectos encontrados", 42],
-    ["defectoExtintorCaducado", "Extintor caducado", 20],
-    ["defectoObstaculo", "Hay un obstáculo", 20],
-    ["defectoDescargado", "Extintor descargado", 22],
-    ["defectoSinPresion", "Extintor sin presión", 22],
-    ["defectoEnSuelo", "Extintor en el suelo", 22],
-    ["defectoCristal", "Cristal armario roto o sin cristal", 32],
-    ["defectoSinSenal", "Sin señal", 16],
-    ["defectoSenalCaducada", "Señal caducada", 20],
-    ["defectoMalEstado", "Extintor en mal estado", 24],
-    ["foto1", "Foto 1", 22],
-    ["foto2", "Foto 2", 22],
-    ["visto", "Visto", 10],
-  ];
-
-  sheet.columns = columns.map(([key, header, width]) => ({ key, header, width }));
-  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD8B4FE" } };
-  sheet.getRow(1).font = { bold: true, color: { argb: "FF241033" } };
-  sheet.getRow(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  sheet.getRow(1).height = 30;
-
-  for (const record of filteredRecords()) {
-    const selectedDefects = record.defectos || [];
-    const row = sheet.addRow({
-      ...record,
-      defectos: selectedDefects.join(" / "),
-      defectoExtintorCaducado: selectedDefects.includes("Extintor caducado.") ? "Sí" : "",
-      defectoObstaculo: selectedDefects.includes("Hay un obstáculo.") ? "Sí" : "",
-      defectoDescargado: selectedDefects.includes("Extintor descargado.") ? "Sí" : "",
-      defectoSinPresion: selectedDefects.includes("Extintor sin presión.") ? "Sí" : "",
-      defectoEnSuelo: selectedDefects.includes("Extintor en el suelo.") ? "Sí" : "",
-      defectoCristal: selectedDefects.includes("Cristal armario roto o sin cristal.") ? "Sí" : "",
-      defectoSinSenal: selectedDefects.includes("Sin señal.") ? "Sí" : "",
-      defectoSenalCaducada: selectedDefects.includes("Señal caducada.") ? "Sí" : "",
-      defectoMalEstado: selectedDefects.includes("Extintor en mal estado.") ? "Sí" : "",
-      foto1: record.photos?.[0] ? "Foto 1" : "",
-      foto2: record.photos?.[1] ? "Foto 2" : "",
-      visto: record.visto ? "Sí" : "No",
-    });
-    if (record.photos?.[0] || record.photos?.[1]) row.height = 92;
-    [0, 1].forEach((photoIndex) => {
-      const photo = record.photos?.[photoIndex];
-      if (!photo) return;
-      const imageId = workbook.addImage({
-        base64: photo,
-        extension: "jpeg",
-      });
-      const col = photoIndex === 0 ? 19 : 20;
-      sheet.addImage(imageId, {
-        tl: { col, row: row.number - 1 },
-        ext: { width: 120, height: 85 },
-        editAs: "oneCell",
-      });
-    });
-  }
-
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: columns.length },
-  };
-
-  sheet.eachRow((row, rowNumber) => {
-    row.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFE6E0DA" } },
-        left: { style: "thin", color: { argb: "FFE6E0DA" } },
-        bottom: { style: "thin", color: { argb: "FFE6E0DA" } },
-        right: { style: "thin", color: { argb: "FFE6E0DA" } },
-      };
-      cell.alignment = { vertical: "top", wrapText: true };
-      if (rowNumber > 1 && rowNumber % 2 === 0) {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAF8F5" } };
-      }
-    });
-  });
-
-  const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const a = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-  a.href = URL.createObjectURL(blob);
-  a.download = `Extintores_Importados_${date}.xlsx`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-function bindEvents() {
-  $("openListBtn").addEventListener("click", () => showView("list"));
-  $("newRecordBtn").addEventListener("click", () => openForm());
-  $("newRecordFromListBtn").addEventListener("click", () => openForm());
-  $("downloadExcelBtn").addEventListener("click", downloadExcel);
-  $("downloadExcelFromTableBtn").addEventListener("click", downloadExcel);
-  $("viewTableFromFormBtn").addEventListener("click", () => showView("list"));
-  $("importExcelBtn").addEventListener("click", () => $("importExcelInput").click());
-  $("importExcelInput").addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      $("importStatus").textContent = "Importando Excel...";
-      await importExcelFile(file);
-      renderTable();
-    } catch (error) {
-      console.error(error);
-      $("importStatus").textContent = "No se ha podido importar el Excel.";
-      alert("No se ha podido importar el Excel. Revisa que tenga el mismo formato del listado.");
-    } finally {
-      event.target.value = "";
-    }
-  });
-
-  ["filterEdificio", "filterNumero", "filterSerie", "sortOrder", "seenFilter"].forEach((id) => {
-    $(id).addEventListener("input", renderTable);
-    $(id).addEventListener("change", renderTable);
-  });
-
-  $("recordForm").addEventListener("submit", saveForm);
-  $("deleteBtn").addEventListener("click", deleteCurrent);
-  [0, 1].forEach((index) => {
-    $(`photoInput${index + 1}`).addEventListener("change", async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      try {
-        const dataUrl = await resizePhoto(file);
-        setPhotoPreview(index, dataUrl);
-      } catch {
-        alert("No he podido cargar esa foto. Prueba con otra imagen.");
-      } finally {
-        event.target.value = "";
-      }
-    });
-    $(`deletePhoto${index + 1}`).addEventListener("click", () => setPhotoPreview(index, ""));
-  });
-
-  document.querySelectorAll("[data-back]").forEach((button) => {
-    button.addEventListener("click", () => showView(button.dataset.back));
-  });
-}
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  });
-}
-
-async function init() {
-  await loadRecords();
-  bindEvents();
-  updateStats();
-}
-
-init();
+    <script src="exceljs.min.js"></script>
+    <script src="seed-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
