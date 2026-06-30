@@ -1,29 +1,25 @@
-const CACHE_NAME = "extintores-importados-v5-modelos";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./seed-data.js",
-  "./manifest.webmanifest",
-  "./icon.svg",
-  "./exceljs.min.js"
-];
+# Extintores Importados
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
-  self.skipWaiting();
-});
+Aplicación creada a partir de la plantilla base.
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
-  );
-  self.clients.claim();
-});
+## Qué hace
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
-});
+- Carga los registros del Excel `Listad para APP.xlsx`.
+- Permite ver todos los registros en tabla.
+- Permite filtrar por número, edificio, ubicación, marca, modelo o defectos.
+- Permite filtrar específicamente por edificio, número y nº de serie.
+- Permite importar un Excel y añadir solo registros nuevos.
+- Permite entrar en un registro, corregir datos y guardar.
+- Permite añadir registros nuevos.
+- Permite marcar cada registro como visto.
+- Permite marcar varios defectos encontrados.
+- Permite cargar 2 fotos por registro y eliminarlas si hace falta.
+- Permite descargar todos los datos en Excel, incluyendo defectos y fotos.
+
+## Datos guardados
+
+Los cambios, importaciones y fotos se guardan en el propio navegador/móvil mediante IndexedDB. No se suben a GitHub ni a internet.
+
+## Publicación
+
+Subir todos los archivos de esta carpeta a un repositorio nuevo de GitHub y activar GitHub Pages desde la rama `main` y carpeta `/root`.
